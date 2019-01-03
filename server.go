@@ -15,7 +15,13 @@ import (
 
 var peers = sync.Map{}
 
+// Version executable version
+var Version = "dev"
+
 func main() {
+	logrus.SetLevel(logrus.DebugLevel)
+	logrus.Debug("Version: ", Version)
+
 	config.SetConfigFileName("server.conf")
 	config.AddSearchPath("/etc/chik")
 	config.AddSearchPath(".")
