@@ -1,9 +1,12 @@
 VERSION = $(shell git describe --always)
 GOFLAGS = -ldflags="-X main.Version=$(VERSION) -s -w"
 
-.PHONY: default server deploy help
+.PHONY: default dependencies server deploy help
 
 default: help
+
+dependencies:
+	go get -u github.com/rferrazz/go-selfupdate
 
 server:
 	test -n "$(GOOS)" # GOOS
@@ -25,4 +28,4 @@ clean:
 	git clean -dfx
 
 help:
-	@echo "make [server clean deploy]"
+	@echo "make [dependencies server clean deploy]"
