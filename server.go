@@ -31,21 +31,24 @@ func main() {
 	}
 	ok := true
 
-	publicKeyPath := config.Get("connection.public_key_path").(string)
+	var publicKeyPath string
+	config.GetStruct("connection.public_key_path", &publicKeyPath)
 	if publicKeyPath == "" {
 		config.Set("connection.public_key_path", "")
 		logrus.Warn("Cannot get public key path from config file")
 		ok = false
 	}
 
-	privateKeyPath := config.Get("connection.private_key_path").(string)
+	var privateKeyPath string
+	config.GetStruct("connection.private_key_path", &privateKeyPath)
 	if privateKeyPath == "" {
 		config.Set("connection.private_key_path", "")
 		logrus.Warn("Cannot get private key path from config file")
 		ok = false
 	}
 
-	port := uint16(config.Get("connection.port").(float64))
+	var port uint16
+	config.GetStruct("connection.port", &port)
 	if port == 0 {
 		config.Set("connection.port", uint16(6767))
 		logrus.Warn("Cannot get port from config file")
