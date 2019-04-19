@@ -9,7 +9,8 @@ import (
 
 	"github.com/gochik/chik"
 	"github.com/gochik/chik/config"
-	"github.com/gochik/chik/handlers"
+	"github.com/gochik/chik/handlers/heartbeat"
+	"github.com/gochik/chik/handlers/router"
 	"github.com/sirupsen/logrus"
 )
 
@@ -84,8 +85,8 @@ func main() {
 		logrus.Debug("Creating a new controller")
 		go func() {
 			controller := chik.NewController()
-			controller.Start(handlers.NewForwardingHandler(&peers))
-			controller.Start(handlers.NewHeartBeatHandler(2 * time.Minute))
+			controller.Start(router.New(&peers))
+			controller.Start(heartbeat.New(2 * time.Minute))
 			<-controller.Connect(connection)
 			controller.Shutdown()
 		}()
