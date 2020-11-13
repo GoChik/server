@@ -33,9 +33,9 @@ func main() {
 	ok := true
 
 	var publicKeyPath string
-	config.GetStruct("connection.public_key_path", &publicKeyPath)
+	config.GetStruct("connection.public_cert_path", &publicKeyPath)
 	if publicKeyPath == "" {
-		config.Set("connection.public_key_path", "")
+		config.Set("connection.public_cert_path", "")
 		log.Warn().Msg("Cannot get public key path from config file")
 		ok = false
 	}
