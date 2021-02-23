@@ -2,9 +2,8 @@ package main
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/tls"
 	"fmt"
+	"net"
 	"sync"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/gochik/chik/handlers/heartbeat"
 	"github.com/gochik/chik/handlers/router"
 	"github.com/rs/zerolog/log"
+	"github.com/smallstep/certificates/ca"
 )
 
 var peers = sync.Map{}
@@ -32,19 +32,11 @@ func main() {
 	}
 	ok := true
 
-	var publicKeyPath string
-	config.GetStruct("connection.public_cert_path", &publicKeyPath)
-	if publicKeyPath == "" {
-		config.Set("connection.public_cert_path", "")
-		log.Warn().Msg("Cannot get public key path from config file")
-		ok = false
-	}
-
-	var privateKeyPath string
-	config.GetStruct("connection.private_key_path", &privateKeyPath)
-	if privateKeyPath == "" {
-		config.Set("connection.private_key_path", "")
-		log.Warn().Msg("Cannot get private key path from config file")
+	var token string
+	config.GetStruct("connection.token", &token)
+	if token == "" {
+		config.Set("connection.token", "")
+		log.Warn().Msg("Cannot get CA token from config file")
 		ok = false
 	}
 
@@ -61,21 +53,20 @@ func main() {
 		log.Fatal().Msg("Config file contains errors, check the logfile.")
 	}
 
-	cert, err := tls.LoadX509KeyPair(publicKeyPath, privateKeyPath)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	inner, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
-		log.Fatal().Msgf("Error loading tls certificate: %v", err)
+		log.Fatal().Msgf("Error starting inner listener: %v", err)
 	}
-
-	config := tls.Config{Certificates: []tls.Certificate{cert}}
-	config.Rand = rand.Reader
-
-	listener, err := tls.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", port), &config)
+	srv, err := ca.BootstrapListener(ctx, token, inner)
 	if err != nil {
-		log.Fatal().Msgf("Error listening: %v", err)
+		log.Fatal().Msgf("Error starting server: %v", err)
 	}
 
 	for {
-		connection, err := listener.Accept()
+		connection, err := srv.Accept()
 		if err != nil {
 			log.Error().Msgf("Connection error: %v", err)
 			continue
@@ -85,13 +76,13 @@ func main() {
 		go func() {
 			log.Info().Msg("New connection: creating a new controller")
 			controller := chik.NewController()
-			ctx, cancel := context.WithCancel(context.Background())
-			go controller.Start(ctx, []chik.Handler{
+			innerctx, innercancel := context.WithCancel(context.Background())
+			go controller.Start(innerctx, []chik.Handler{
 				router.New(&peers),
 				heartbeat.New(2 * time.Minute),
 			})
 			<-controller.Connect(connection)
-			cancel()
+			innercancel()
 		}()
 	}
 }
