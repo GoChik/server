@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
-	"net"
 	"sync"
 	"time"
 
@@ -12,10 +12,9 @@ import (
 	"github.com/gochik/chik/handlers/heartbeat"
 	"github.com/gochik/chik/handlers/router"
 	"github.com/rs/zerolog/log"
-	"github.com/smallstep/certificates/ca"
 )
 
-var peers = sync.Map{}
+var peers sync.Map
 
 // Version executable version
 var Version = "dev"
@@ -56,11 +55,12 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	inner, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	conf, err := config.TlsConfig(ctx, token)
 	if err != nil {
-		log.Fatal().Msgf("Error starting inner listener: %v", err)
+		log.Fatal().Msgf("Failed to get TLS config: %v", err)
 	}
-	srv, err := ca.BootstrapListener(ctx, token, inner)
+
+	srv, err := tls.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", port), conf)
 	if err != nil {
 		log.Fatal().Msgf("Error starting server: %v", err)
 	}
