@@ -55,7 +55,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	conf, err := config.TlsConfig(ctx, token)
+	conf, err := config.TLSConfig(ctx, token)
 	if err != nil {
 		log.Fatal().Msgf("Failed to get TLS config: %v", err)
 	}
