@@ -81,8 +81,10 @@ func main() {
 				router.New(&peers),
 				heartbeat.New(2 * time.Minute),
 			})
-			<-controller.Connect(connection)
+			ctx, remoteCancel := chik.StartRemote(controller, connection, chik.MaxIdleTime)
+			<-ctx.Done()
 			innercancel()
+			remoteCancel()
 		}()
 	}
 }
