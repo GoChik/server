@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/gochik/chik"
 	"github.com/gochik/chik/config"
@@ -79,7 +78,7 @@ func main() {
 			innerctx, innercancel := context.WithCancel(context.Background())
 			go controller.Start(innerctx, []chik.Handler{
 				router.New(&peers),
-				heartbeat.New(2 * time.Minute),
+				heartbeat.New(),
 			})
 			ctx, remoteCancel := chik.StartRemote(controller, connection, chik.MaxIdleTime)
 			<-ctx.Done()
