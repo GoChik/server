@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/gochik/chik"
 	"github.com/gochik/chik/config"
@@ -73,13 +74,23 @@ func main() {
 
 		// Creating the controller that is handling the newly connected client
 		go func() {
-			log.Info().Msg("New connection: creating a new controller")
+			log.Info().Str("client", connection.RemoteAddr().String()).Msg("New connection")
+			tlsConn := connection.(*tls.Conn)
+			err := tlsConn.Handshake()
+			if err != nil {
+				log.Err(err).Msg("Handshake failed.")
+				tlsConn.Close()
+				return
+			}
+
+			log.Info().Msg("Creating a new controller")
 			controller := chik.NewController()
 			innerctx, innercancel := context.WithCancel(context.Background())
 			go controller.Start(innerctx, []chik.Handler{
 				router.New(&peers),
 				heartbeat.New(),
 			})
+			time.Sleep(5 * time.Millisecond) // TODO: we need to be sure handlers are started before being able to receive messages
 			ctx, remoteCancel := chik.StartRemote(controller, connection, chik.MaxIdleTime)
 			<-ctx.Done()
 			innercancel()
